@@ -11,12 +11,22 @@
       left: 0;
       position: absolute;
     }
+    .hidden {
+      display: none;
+    }
   </style>
 </head>
 
 <body>
   <div id="upload">
+    <h2>Plot your entire google maps timeline</h2>
+    <h3>how to get the data</h3>
+    <p>
+    go here <a href="https://takeout.google.com/settings/takeout">https://takeout.google.com/settings/takeout</a> and download "Location history" in json format unzip the file and upload "Location History.json" in the button below
+    </p>
+    <br />
     <input type="file" id="file" name="file"/>
+    <p id="loading" class="hidden">Loading...</p>
   </div>
   <!--The div element for the map -->
   <div id="map"></div>
@@ -24,17 +34,20 @@
     var points;
 
     function handleFileSelect(evt) {
+      window.requestAnimationFrame(() => {
+        document.getElementById("loading").className = "";
+      });
       var file = evt.target.files[0];
       var reader = new FileReader();
 
       // Closure to capture the file information.
       reader.onload = function(e) {
-	      points = JSON.parse(e.target.result).locations.filter(x => x.accuracy).map(x => {
-		      return {
-			      lat: (x.latitudeE7 / 10000000), lng: (x.longitudeE7 / 10000000), accuracy: x.accuracy, timestamp: Number(x.timestampMs) / 1000
-		      }
-	      })
-	      initMap();
+        points = JSON.parse(e.target.result).locations.filter(x => x.accuracy).map(x => {
+          return {
+            lat: (x.latitudeE7 / 10000000), lng: (x.longitudeE7 / 10000000), accuracy: x.accuracy, timestamp: Number(x.timestampMs) / 1000
+          };
+        });
+        initMap();
       };
 
       reader.readAsText(file);
@@ -44,7 +57,7 @@
     // Initialize and add the map
     function initMap() {
       if (!points) {
-          return;
+        return;
       }
       var el = document.getElementById('map');
       el.className = "map";
