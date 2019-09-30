@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <style>
+    /* Set the size of the div element that contains the map */
+    .map {
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      position: absolute;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="upload">
+    <input type="file" id="file" name="file"/>
+  </div>
+  <!--The div element for the map -->
+  <div id="map"></div>
+  <script>
+    var points;
+
+    function handleFileSelect(evt) {
+      var file = evt.target.files[0];
+      var reader = new FileReader();
+
+      // Closure to capture the file information.
+      reader.onload = function(e) {
+	      points = JSON.parse(e.target.result).locations.filter(x => x.accuracy).map(x => {
+		      return {
+			      lat: (x.latitudeE7 / 10000000), lng: (x.longitudeE7 / 10000000), accuracy: x.accuracy, timestamp: Number(x.timestampMs) / 1000
+		      }
+	      })
+	      initMap();
+      };
+
+      reader.readAsText(file);
+    }
+
+    document.getElementById('file').addEventListener('change', handleFileSelect, false);
+    // Initialize and add the map
+    function initMap() {
+      if (!points) {
+          return;
+      }
+      var el = document.getElementById('map');
+      el.className = "map";
+      var mypoints = getPoints();
+      var icon = 'data:image/png;base64,' + 'iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAACXBIWXMAAAAAAAAAAQCEeRdzAAAAEUlEQVR4nGNgmHbiPwomXQAA7Kgl0ege4Y0AAAAASUVORK5CYII='
+      var center = { lat: 47.371358, lng: 8.0592448 };
+      var p = mypoints.concat([mypoints[0]]);
+      var map = new google.maps.Map(el, { zoom: 5, center: center });
+      p.map(x => new google.maps.Marker({
+        position: x,
+        map: map,
+        icon: icon,
+      }));
+      var flightPath = new google.maps.Polyline({
+        path: p,
+        geodesic: true,
+        strokeColor: '#FF00A8',
+        strokeOpacity: 0.8,
+        strokeWeight: 4
+      });
+      flightPath.setMap(map);
+    }
+
+    // copied from https://www.geodatasource.com/developers/javascript
+    function distance(lat1, lon1, lat2, lon2, unit) {
+      if ((lat1 == lat2) && (lon1 == lon2)) {
+        return 0;
+      }
+      else {
+        var radlat1 = Math.PI * lat1 / 180;
+        var radlat2 = Math.PI * lat2 / 180;
+        var theta = lon1 - lon2;
+        var radtheta = Math.PI * theta / 180;
+        var dist = Math.sin(radlat1) * Math.sin(radlat2) + Math.cos(radlat1) * Math.cos(radlat2) * Math.cos(radtheta);
+        if (dist > 1) {
+          dist = 1;
+        }
+        dist = Math.acos(dist);
+        dist = dist * 180 / Math.PI;
+        dist = dist * 60 * 1.1515;
+        if (unit == "K") { dist = dist * 1.609344 }
+        if (unit == "N") { dist = dist * 0.8684 }
+        return dist;
+      }
+    }
+
+    function getPoints() {
+      var mypoints = points.filter(x => true)
+      // remove points with low accuracy
+      mypoints = mypoints.filter(x => x.accuracy < 200);
+      return mypoints
+    }
+  </script>
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCr6IYeU5V73TOEjzI7cOUpKH7LEPWMNxQ&callback=initMap">
+  </script>
+</body>
+
+</html>
